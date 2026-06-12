@@ -1,0 +1,84 @@
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { motion, AnimatePresence } from 'framer-motion';
+import MailchimpSignupForm from '@/components/MailchimpSignupForm';
+import { X } from 'lucide-react';
+
+const MailchimpSignupModal = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    // Check if the modal has been closed in the current session
+    const hasClosed = sessionStorage.getItem('mailchimpModalClosed');
+    
+    if (!hasClosed) {
+      // Add a slight delay before showing the modal for better UX
+      const timer = setTimeout(() => {
+        setIsOpen(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleOpenChange = (open) => {
+    if (!open) {
+      setIsOpen(false);
+      sessionStorage.setItem('mailchimpModalClosed', 'true');
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      {/* 
+        We use custom styling on the DialogContent to make it borderless and transparent,
+        allowing our Framer Motion component and the Mailchimp form to provide the visual structure.
+        The default close button is hidden ([&>button]:hidden) so we can provide our own custom one.
+      */}
+      <DialogContent className="sm:max-w-md bg-transparent border-none shadow-none p-0 [&>button]:hidden">
+        <DialogTitle className="sr-only">Join Our Newsletter</DialogTitle>
+        <DialogDescription className="sr-only">
+          Subscribe to our newsletter for the latest updates and special offers.
+        </DialogDescription>
+
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ 
+                type: "spring",
+                stiffness: 300,
+                damping: 25,
+                duration: 0.4 
+              }}
+              className="relative w-full"
+            >
+              {/* Custom Close Button */}
+              <button 
+                onClick={() => handleOpenChange(false)}
+                className="absolute top-4 right-4 z-50 p-1.5 rounded-full bg-black/40 text-gray-400 hover:text-white hover:bg-black/60 transition-all border border-white/10"
+                aria-label="Close newsletter signup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              {/* Decorative Wrapper for added emphasis */}
+              <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-purple-900/20 ring-1 ring-purple-500/30">
+                {/* Glowing background effect */}
+                <div className="absolute -inset-0.5 bg-gradient-to-br from-purple-600/30 to-blue-600/30 blur-lg opacity-50 z-0"></div>
+                
+                {/* Form Container */}
+                <div className="relative z-10">
+                  <MailchimpSignupForm />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default MailchimpSignupModal;
