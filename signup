@@ -1,3 +1,135 @@
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabaseClient';
+import { Loader2, Mail } from 'lucide-react';
+
+const MailchimpSignupForm = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const validateEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email format.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('subscribe-mailchimp', {
+        body: { email, name }
+      });
+
+      if (error) throw new Error(error.message);
+
+      if (data?.success) {
+        toast({
+          title: "Success!",
+          description: data.message === "You are already subscribed!" 
+            ? "You are already subscribed to our newsletter."
+            : "Successfully subscribed to Timeless Flow Entertainment!",
+        });
+        setName('');
+        setEmail('');
+      } else {
+        throw new Error(data?.message || 'Subscription failed');
+      }
+    } catch (err) {
+      console.error("Subscription error:", err);
+      toast({
+        title: "Subscription Failed",
+        description: err.message || "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-neutral-900/60 backdrop-blur-sm p-6 rounded-xl border border-purple-500/20 shadow-lg max-w-md w-full">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-purple-500/10 rounded-full text-purple-400">
+          <Mail className="w-5 h-5" />
+        </div>
+        <h3 className="text-xl font-semibold text-white">Join Our Newsletter</h3>
+      </div>
+      <p className="text-gray-400 text-sm mb-6">
+        Subscribe to get the latest updates, special offers, and mixing tips directly to your inbox.
+      </p>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="signup-name" className="text-gray-300">Name (Optional)</Label>
+          <Input 
+            id="signup-name" 
+            placeholder="Enter your name" 
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="bg-black/50 border-purple-500/30 text-white placeholder:text-gray-500 focus-visible:ring-purple-500"
+            disabled={loading}
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="signup-email" className="text-gray-300">Email Address <span className="text-red-400">*</span></Label>
+          <Input 
+            id="signup-email" 
+            type="email"
+            placeholder="you@example.com" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="bg-black/50 border-purple-500/30 text-white placeholder:text-gray-500 focus-visible:ring-purple-500"
+            disabled={loading}
+            required
+          />
+        </div>
+
+        <Button 
+          type="submit" 
+          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Subscribing...
+            </>
+          ) : (
+            "Subscribe Now"
+          )}
+        </Button>
+      </form>
+    </div>
+  );
+};
+
+export default MailchimpSignupForm;
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
